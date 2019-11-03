@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel="icon" href="data:;base64,iVBORw0KGgo=">
+	<script src="http://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
+	<link href="https://fonts.googleapis.com/css?family=Quicksand&display=swap" rel="stylesheet">
+	<link rel="stylesheet" href="style.css">
+	<title>PythonGUI</title>
+	<noscript>Your browser does not support JavaScript!</noscript>
+	<script>
+		// Applied globally on all textareas with the "autoExpand" class
+		$(document).one('focus.autoExpand', 'textarea.autoExpand', function(){
+			var savedValue = this.value;
+			this.value = '';
+			this.baseScrollHeight = this.scrollHeight;
+			this.value = savedValue;
+		})
+		.on('input.autoExpand', 'textarea.autoExpand', function(){
+			var minRows = this.getAttribute('data-min-rows')|0, rows;
+			this.rows = minRows;
+			rows = Math.ceil((this.scrollHeight - this.baseScrollHeight) / 16);
+			this.rows = minRows + rows;
+		});
+	</script>
+</head>
+<body>
+	<section class="all">
+
+		<div id="choosing">
+			<p>Choose CSV to read</p>
+			<button onclick="choose('1', 'Select')">First</button>
+			<button onclick="choose('2', 'Select')">Second</button>
+			<button onclick="choose('0', 'Select')">Both</button>
+		</div>
+
+		<form target="dummyframe" action="" method="post">
+			<div class="checkbox" id="check">
+				<input type="radio" name="checkbox" value="group" onclick="show('group')"/>Group By<br>
+				<input type="radio" name="checkbox" value="selection" onclick="show('selection')"/>Selection<br>
+				<input type="radio" name="checkbox" value="compare" onclick="show('compare')"/>Compare<br>
+				<input type="radio" name="checkbox" value="graph" onclick="show('graph')"/>Graphs
+			</div>
+			<!-- <div>
+				<label for="say">Request:</label>
+				<textarea class='autoExpand' rows='2' data-min-rows='2' name="say" id="say" placeholder="type"></textarea>
+			</div>
+			<div>
+				<label for="to">Form:</label>
+				<textarea class='autoExpand' rows='2' data-min-rows='2' name="to" id="to" placeholder="anything"></textarea>
+			</div> -->
+			<div id="dropdowns">
+				<div class="custom-select0" style="display:none;">
+					<select name="Select" id="Select" disabled>
+						<option value = "" selected>Choose Header</option>
+					</select>
+				</div>
+			</div>
+			
+			<div id="func">
+				<input type="checkbox" name="sort" onclick="sortShow('check')" disabled>Sort
+				<input type="radio" name="op" value="sum" disabled>Sum
+				<input type="radio" name="op" value="average" disabled>Average
+				<div id="sorting" style="display: none;">
+					<input type="checkbox" name="sorted" value="descending" disabled>Descending
+					<select name="rows" disabled>
+						<option value = "" selected>Number of rows</option>
+						<option value = '5'>5</option>
+						<option value = '10'>10</option>
+						<option value = '15'>15</option>
+					</select>
+				</div>
+			</div>
+
+			<div id="graphing">
+				<input type="radio" name="csv" value="first" onclick="axis('1')" disabled>First
+				<input type="radio" name="csv" value="second" onclick="axis('2')" disabled>Second
+				<br><br>
+				<select name="x" id="x-axis" disabled>
+					<option value = "" selected>Choose Header X</option>
+				</select>
+				<br>
+				<select name="y" id="y-axis" disabled>
+					<option value = "" selected>Choose Header Y</option>
+				</select>
+				<br>
+				<input type="radio" name="type" value="bar" disabled>Bar
+				<input type="radio" name="type" value="pie" disabled>Pie
+				<input type="radio" name="type" value="line" disabled>Line
+			</div>
+
+			<button class="final" onclick="validateForm()">Submit</button>
+		</form>
+
+		<button id="selection" onclick="show('more')">+ Add More Headers</button>
+	
+	</section>
+
+	<script>
+		function axis(number) {
+			var x = document.getElementById('x-axis');
+			var y = document.getElementById('y-axis');
+			if(x.length!=1) {
+				for(var i=x.length-1; i>0; i--) {
+					x.removeChild(x.children[i]);
+					y.removeChild(y.children[i]);
+				}
+			}
+			x.style.display = 'block';
+			y.style.display = 'block';
+			x.disabled = false;
+			y.disabled = false;
+			choose(number, 'x-axis');
+			choose(number, 'y-axis');
+		}
+
+		function choose(numb, sect) {
+			var rawFile = new XMLHttpRequest();
+			rawFile.open("GET", "columns"+numb+".txt", false);
+			rawFile.onreadystatechange = function ()
+			{
+				if(rawFile.readyState === 4)
+				{
+					if(rawFile.status === 200 || rawFile.status == 0)
+					{
+						var allText = rawFile.responseText.split(', ');
+						allText = [...new Set(allText)].slice(0,-1);
+						var sel = document.getElementById(sect);
+						for (i=0; i<allText.length; i++) {
+							var node = document.createElement("option");
+							var textnode = document.createTextNode(allText[i]);
+							node.value = allText[i];
+							node.appendChild(textnode);
+							sel.appendChild(node);
+						}
+					}
+				}
+			}
+			rawFile.send(null);
+			loadDropdown('0');
+			document.getElementById('check').style.display = 'block';
+			document.getElementById('choosing').style.display = 'none';
+		}
+		
+		function loadDropdown(num) {
+			var x, i, j, selElmnt, a, b, c;
+			/* Look for any elements with the class "custom-select": */
+			x = document.getElementsByClassName("custom-select"+num);
+			for (i = 0; i < x.length; i++) {
+			selElmnt = x[i].getElementsByTagName("select")[0];
+			selElmnt.style.display = 'none';
+			selElmnt.className = 'copy';
+			/* For each element, create a new DIV that will act as the selected item: */
+			a = document.createElement("section");
+			a.setAttribute("class", "select-selected");
+			a.innerHTML = selElmnt.options[selElmnt.selectedIndex].innerHTML;
+			x[i].appendChild(a);
+			/* For each element, create a new DIV that will contain the option list: */
+			b = document.createElement("section");
+			b.setAttribute("class", "select-items select-hide");
+			for (j = 1; j < selElmnt.length; j++) {
+				/* For each option in the original select element,
+				create a new DIV that will act as an option item: */
+				c = document.createElement("section");
+				c.innerHTML = selElmnt.options[j].innerHTML;
+				c.addEventListener("click", function(e) {
+					/* When an item is clicked, update the original select box,
+					and the selected item: */
+					var y, i, k, s, h;
+					s = this.parentNode.parentNode.getElementsByTagName("select")[0];
+					h = this.parentNode.previousSibling;
+					for (i = 0; i < s.length; i++) {
+					if (s.options[i].innerHTML == this.innerHTML) {
+						s.selectedIndex = i;
+						h.innerHTML = this.innerHTML;
+						y = this.parentNode.getElementsByClassName("same-as-selected");
+						for (k = 0; k < y.length; k++) {
+						y[k].removeAttribute("class");
+						}
+						this.setAttribute("class", "same-as-selected");
+						break;
+					}
+					}
+					h.click();
+				});
+				b.appendChild(c);
+			}
+			x[i].appendChild(b);
+			a.addEventListener("click", function(e) {
+				/* When the select box is clicked, close any other select boxes,
+				and open/close the current select box: */
+				e.stopPropagation();
+				closeAllSelect(this);
+				this.nextSibling.classList.toggle("select-hide");
+				this.classList.toggle("select-arrow-active");
+			});
+			}
+		}
+
+		function sortShow(event) {
+			var sort = document.getElementById('sorting');
+			if(sort.style.display == 'none') {
+				sort.style.display = 'block';
+			} else {
+				sort.style.display = 'none';
+			}
+		}
+
+		function show(box) {
+			var num = document.getElementById('dropdowns').children.length;
+			var first = document.querySelector('.custom-select0');
+			if(first.style.display == 'none' && (box=='group' || box=='selection' || box=='more')) {
+				first.style.display = 'inline-block';
+				first.children[0].disabled = false;
+			} else if(!(box=='group' || box=='selection' || box=='more')) {
+				first.style.display = 'none';
+				first.children[0].disabled = true;
+			}
+			if(box=="more" && num<4) {
+				var copied = document.getElementsByClassName("copy");
+				var child = copied[0].cloneNode(true);
+				var parent = document.createElement('div');
+				parent.className = 'custom-select'+num;
+				parent.appendChild(child);
+				document.getElementById('dropdowns').appendChild(parent);
+				loadDropdown(num);
+				if (num==3) {
+					document.getElementById('selection').style.display = 'none';
+				}
+				document.getElementById('x-axis').disabled = true;
+				document.getElementById('y-axis').disabled = true;
+			} else if(box=="selection" && num<4) {
+				document.getElementById('selection').style.display = 'inline-block';
+				var func = document.getElementById('func');
+				func.style.display = 'block';
+				for(var i=0; i<func.children.length; i++) {
+					func.children[i].disabled = false;
+				}
+				var child = func.children[3].children
+				for(var i=0; i<child.length; i++) {
+					child[i].disabled = false;
+				}
+				var graphs = document.getElementById('graphing');
+				graphs.style.display = 'none';
+				for(var i=0; i<graphs.children.length; i++) {
+					graphs.children[i].disabled = true;
+				}
+				document.getElementById('x-axis').disabled = true;
+				document.getElementById('y-axis').disabled = true;
+			} else if(box=="graph") {
+				var graphs = document.getElementById('graphing');
+				graphs.style.display = 'block';
+				for(var i=0; i<graphs.children.length; i++) {
+					graphs.children[i].disabled = false;
+				}
+				document.getElementById('selection').style.display = 'none';
+				var func = document.getElementById('func');
+				func.style.display = 'none';
+				for(var i=0; i<func.children.length; i++) {
+					func.children[i].disabled = true;
+				}
+				var child = func.children[3].children
+				for(var i=0; i<child.length; i++) {
+					child[i].disabled = true;
+				}
+				if(num>1) {
+					for(var i=1; i<num; i++) {
+						var drop = document.getElementById('dropdowns');
+						drop.removeChild(drop.children[1]);
+					}
+				}
+				document.getElementById('x-axis').disabled = false;
+				document.getElementById('y-axis').disabled = false;
+			} else {
+				var graphs = document.getElementById('graphing');
+				graphs.style.display = 'none';
+				for(var i=0; i<graphs.children.length; i++) {
+					graphs.children[i].disabled = true;
+				}
+				document.getElementById('selection').style.display = 'none';
+				var func = document.getElementById('func');
+				func.style.display = 'none';
+				for(var i=0; i<func.children.length; i++) {
+					func.children[i].disabled = true;
+				}
+				var child = func.children[3].children
+				for(var i=0; i<child.length; i++) {
+					child[i].disabled = true;
+				}
+				if(num>1) {
+					for(var i=1; i<num; i++) {
+						var drop = document.getElementById('dropdowns');
+						drop.removeChild(drop.children[1]);
+					}
+				}
+				document.getElementById('x-axis').disabled = true;
+				document.getElementById('y-axis').disabled = true;
+			}
+		}
+
+		function validateForm() {
+			if(document.forms[0][0].checked) {
+				if(document.forms[0][4].value == '') {
+					alert('Form is not complete!');
+					return false;
+				}
+			} else if(document.forms[0][1].checked) {
+				var num = document.getElementById('dropdowns').children.length;
+				var inputted = 0;
+				for(var i=0; i<num; i++) {
+					if(document.forms[0][4+i].value == '') {
+						alert('Form is not complete!');
+						return false;
+					}
+				}
+			} else if(document.forms[0][3].checked) {
+				var inputted = 0;
+				if(document.forms[0]['csv'][0].checked || document.forms[0]['csv'][1].checked) {
+					if(document.forms[0]['x'].value == '' || document.forms[0]['y'].value == '') {
+						alert('Form is not complete!');
+						return false;
+					}
+					for(var i=0; i<3; i++) {
+						if(document.forms[0]['type'][i].checked) {
+							inputted++;
+						}
+					}
+					if(inputted!=1) {
+						alert('Form is not complete!');
+						return false;
+					}
+				} else {
+					alert('Form is not complete!');
+					return false;
+				}
+			} else if(!document.forms[0][2].checked) {
+				alert('Form is not complete!');
+				return false;
+			}
+			setTimeout(function() {
+				window.location.href='http://localhost:8000/python.html';
+			},1000);
+		}
+
+		function closeAllSelect(elmnt) {
+		  /* A function that will close all select boxes in the document,
+		  except the current select box: */
+		  var x, y, i, arrNo = [];
+		  x = document.getElementsByClassName("select-items");
+		  y = document.getElementsByClassName("select-selected");
+		  for (i = 0; i < y.length; i++) {
+			if (elmnt == y[i]) {
+			  arrNo.push(i)
+			} else {
+			  y[i].classList.remove("select-arrow-active");
+			}
+		  }
+		  for (i = 0; i < x.length; i++) {
+			if (arrNo.indexOf(i)) {
+			  x[i].classList.add("select-hide");
+			}
+		  }
+		}
+
+		/* If the user clicks anywhere outside the select box,
+		then close all select boxes: */
+		document.addEventListener("click", closeAllSelect); 
+	</script>
+	<iframe width="0" height="0" border="0" name="dummyframe" id="dummyframe" style="display:none;"></iframe>
+</body>
+</html>

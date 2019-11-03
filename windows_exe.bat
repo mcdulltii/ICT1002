@@ -1,0 +1,1 @@
+cmd /k "pyinstaller -D -F -w -n server ".\Source Code\server.py" && xcopy ".\Source Code\runfunction.py" .\dist\runfunction.py /y && xcopy ".\Source Code\resources" .\dist\resources /y/s/h/e/k/f/c/i && exit"
