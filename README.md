@@ -1,4 +1,5 @@
 # PythonGUI
+[![](https://img.shields.io/badge/Category-Data%20Analytics-E5A505?style=flat-square)]() [![](https://img.shields.io/badge/Language-JS%20%2f%20Python3-E5A505?style=flat-square)]() [![](https://img.shields.io/badge/Version-1.0-E5A505?style=flat-square&color=green)]()
 
 This project was made in fulfilment of the criterias in AY2019/20 Trimester 1 ICT 1002 Python Project. 
 
